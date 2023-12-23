@@ -10,12 +10,12 @@ router.get("/", contactsController.getAll);
 
 router.get("/:contactId",isValidId, contactsController.getById);
 
-router.post("/", isValidId, isEmptyBody, contactsController.addContact);
+router.post("/", isEmptyBody, contactsController.addContact);
 
 router.delete("/:contactId", isValidId, contactsController.deleteContact);
 
 router.put("/:contactId", isValidId, isEmptyBody, contactsController.updateById);
 
-router.patch("/:id/favorite", isValidId, isEmptyBody, contactsController.updateStatusContact)
+router.patch("/:contactId/favorite", isValidId, contactsController.updateStatusContact)
 
 export default router; 

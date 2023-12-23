@@ -9,9 +9,9 @@ export const addSchema = Joi.object({
   phone: Joi.number().required(), 
   favorite: Joi.boolean(),
 });
-// export const contactUpdateFavoriteSchema = Joi.object({
-//     favorite: Joi.boolean().required()
-// })
+export const contactUpdateFavoriteSchema = Joi.object({
+    favorite: Joi.boolean().required()
+})
 
 const contactSchema = new Schema(
   {
