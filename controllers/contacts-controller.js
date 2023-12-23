@@ -1,77 +1,81 @@
-import Contact from "../models/Contact.js";
-import HttpError from "../helpers/HttpError.js";
-import Joi from "joi";
+import Contact, { addSchema } from "../models/Contact.js";
+import { HttpError } from "../helpers/index.js";
 import ctrlWrapper from "../decorators/ctrlWrapper.js";
-
-
-const addSchema = Joi.object({
-  name: Joi.string().required(),
-  email: Joi.string().required(),
-  phone: Joi.number().required(),
-});
 
 
 const getAll = async (req, res) => {
  
-  const result = await Contact.find();
+  const result = await Contact.find({}, "-createdAt -updatedAt");
     res.json(result);
   } 
 
 
-// const getById = async (req, res) => {
+const getById = async (req, res) => {
 
-//     const { contactId } = req.params;
-//     const result = await contacts.getContactById(contactId);
-//     if (!result) {
-//         throw HttpError(404, "Not Found")
-//     }
-//     res.json(result);
-// }   
+    const { contactId } = req.params;
+    const result = await Contact.findById(contactId);
+    if (!result) {
+        throw HttpError(404, `Contact with ${contactId} not found`)
+    }
+    res.json(result);
+}   
     
   
-
-// const addContact = async (req, res) => {
+const addContact = async (req, res) => {
  
-//     const { error } = addSchema.validate(req.body);
-//     if (error) {
-//       throw HttpError(400, error.message);
-//     }
-//     const result = await contacts.addContact(req.body);
-//     res.status(201).json(result);
+    const { error } = addSchema.validate(req.body);
+    if (error) {
+      throw HttpError(400, error.message);
+    }
+    const result = await Contact.create(req.body);
+    res.status(201).json(result);
  
-// };
+};
 
-// const deleteContact = async (req, res) => {
+const deleteContact = async (req, res) => {
   
-//     const { contactId } = req.params;
-//     const result = await contacts.removeContact(contactId);
-//     console.log(result);
-//     if (!result) {
-//       throw HttpError(404, "Not Found");
-//     }
-//     res.json({ message: "Delete success" });
+    const { contactId } = req.params;
+    const result = await Contact.findByIdAndDelete(contactId);
+    console.log(result);
+    if (!result) {
+      throw HttpError(404, "Not Found");
+    }
+    res.json({ message: "Delete success" });
  
-// };
+};
 
-// const updateById = async (req, res) => {
+const updateById = async (req, res) => {
  
-//     const { error } = addSchema.validate(req.body);
-//     if (error) {
-//       throw HttpError(400, error.message);
-//     }
-//     const { contactId } = req.params;
-//     const result = await contacts.updateContact(contactId, req.body);
-//        if (!result) {
-//       throw HttpError(404, "Not Found");
-//     }
-//     res.json(result);
+    const { error } = addSchema.validate(req.body);
+    if (error) {
+      throw HttpError(400, error.message);
+    }
+    const { contactId } = req.params;
+    const result = await Contact.findByIdAndUpdate(contactId, req.body, {new:true, runValidators: true}, );
+       if (!result) {
+      throw HttpError(404, "Not Found");
+    }
+    res.json(result);
  
-// }
+}
+const updateStatusById = async (req, res) => {
+      const { error } = contactUpdateFavoriteSchema.validate(req.body);
+    if (error) {
+      throw HttpError(400, error.message);
+    }
+    const { contactId } = req.params;
+    const result = await Contact.findByIdAndUpdate(contactId, req.body, {new:true, runValidators: true}, );
+       if (!result) {
+      throw HttpError(404, "Not Found");
+    }
+    res.json(result);
+}
 
 export default {
   getAll: ctrlWrapper(getAll),
-  // getById: ctrlWrapper(getById),
-  // addContact: ctrlWrapper(addContact),
-  //   deleteContact: ctrlWrapper(deleteContact),
-  // updateById: ctrlWrapper(updateById)
+  getById: ctrlWrapper(getById),
+  addContact: ctrlWrapper(addContact),
+    deleteContact: ctrlWrapper(deleteContact),
+  updateById: ctrlWrapper(updateById),
+  updateStatusContact: ctrlWrapper(updateStatusById),
 };
