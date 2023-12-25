@@ -13,7 +13,7 @@ export const contactUpdateFavoriteSchema = Joi.object({
     favorite: Joi.boolean().required()
 })
 
-const contactSchema = new Schema(
+export const contactSchema = new Schema(
   {
     name: {
       type: String,
