@@ -7,7 +7,6 @@ export const addSchema = Joi.object({
   name: Joi.string().required(),
   email: Joi.string().required(),
   phone: Joi.number().required(),
-  favorite: Joi.boolean(),
 });
 export const contactUpdateFavoriteSchema = Joi.object({
   favorite: Joi.boolean().required(),
