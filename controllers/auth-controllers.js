@@ -4,8 +4,13 @@ import { ctrlWrapper } from "../decorators/index.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import "dotenv/config";
+import gravatar from "gravatar";
+import path from "path";
+import fs from "fs/promises";
+import Jimp from "jimp";
 
 const { JWT_SECRET } = process.env;
+const avatarsDir = path.resolve("public", "avatars");
 
 export const signup = async (req, res) => {
   const { email, password } = req.body;
@@ -14,7 +19,12 @@ export const signup = async (req, res) => {
     throw HttpError(409, "Email already exists");
   }
   const hashPassword = await bcrypt.hash(password, 10);
-  const newUser = await User.create({ ...req.body, password: hashPassword });
+  const avatarURL = gravatar.url(email);
+  const newUser = await User.create({
+    ...req.body,
+    password: hashPassword,
+    avatarURL,
+  });
   res.status(201).json({
     email: newUser.email,
     subscription: newUser.subscription,
@@ -70,10 +80,35 @@ const updateSubscription = async (req, res) => {
   res.json(result);
 };
 
+const updateAvatar = async (req, res) => {
+  const { _id } = req.user;
+  const { path: tempUpload, originalname } = req.file;
+  const filename = `${_id}_${originalname}`;
+
+  async function croppedImg() {
+    const image = await Jimp.read(tempUpload);
+    const croppedImg = image.resize(250, 250).greyscale();
+    const rewriteImg = croppedImg.write(tempUpload);
+    return rewriteImg;
+  }
+  await croppedImg();
+
+  const resultUpload = path.join(avatarsDir, filename);
+
+  await fs.rename(tempUpload, resultUpload);
+  const avatarURL = path.join("avatars", filename);
+  await User.findByIdAndUpdate(_id, { avatarURL });
+
+  res.json({
+    avatarURL,
+  });
+};
+
 export default {
   signup: ctrlWrapper(signup),
   signin: ctrlWrapper(signin),
   getCurrent: ctrlWrapper(getCurrent),
   logout: ctrlWrapper(logout),
   updateSubscription: ctrlWrapper(updateSubscription),
+  updateAvatar: ctrlWrapper(updateAvatar),
 };
