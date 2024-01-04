@@ -1,5 +1,5 @@
 import User from "../models/users.js";
-import { HttpError } from "../helpers/index.js";
+import { HttpError, croppedImg } from "../helpers/index.js";
 import { ctrlWrapper } from "../decorators/index.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
@@ -7,7 +7,6 @@ import "dotenv/config";
 import gravatar from "gravatar";
 import path from "path";
 import fs from "fs/promises";
-import Jimp from "jimp";
 
 const { JWT_SECRET } = process.env;
 const avatarsDir = path.resolve("public", "avatars");
@@ -85,13 +84,13 @@ const updateAvatar = async (req, res) => {
   const { path: tempUpload, originalname } = req.file;
   const filename = `${_id}_${originalname}`;
 
-  async function croppedImg() {
-    const image = await Jimp.read(tempUpload);
-    const croppedImg = image.resize(250, 250).greyscale();
-    const rewriteImg = croppedImg.write(tempUpload);
-    return rewriteImg;
-  }
-  await croppedImg();
+  // async function croppedImg() {
+  //   const image = await Jimp.read(tempUpload);
+  //   const croppedImg = image.resize(250, 250).greyscale();
+  //   const rewriteImg = croppedImg.write(tempUpload);
+  //   return rewriteImg;
+  // }
+  await croppedImg(tempUpload);
 
   const resultUpload = path.join(avatarsDir, filename);
 
