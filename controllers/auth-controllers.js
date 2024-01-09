@@ -12,7 +12,7 @@ import { nanoid } from "nanoid";
 const { JWT_SECRET, BASE_URL } = process.env;
 const avatarsDir = path.resolve("public", "avatars");
 
-export const signup = async (req, res) => {
+const signup = async (req, res) => {
   const { email, password } = req.body;
   const user = await User.findOne({ email });
   if (user) {
@@ -31,7 +31,7 @@ export const signup = async (req, res) => {
   const verifyEmail = {
     to: email,
     subject: "Verify email",
-    html: `<a target="_blank" href="${BASE_URL}/api/users/verify/${verificationToken}">Click verify email</a>`,
+    html: `<a target="_blank" href="${BASE_URL}/api/auth/verify/${verificationToken}">Click verify email</a>`,
   };
 
   await sendEmail(verifyEmail);
@@ -43,24 +43,42 @@ export const signup = async (req, res) => {
 };
 
 const verifyEmail = async (req, res) => {
-  const { verificationToken, _id } = req.params;
+  const { verificationToken } = req.params;
   console.log(verificationToken);
-  
   const user = await User.findOne({ verificationToken });
+
   if (!user) {
     throw HttpError(401, "User not found");
   }
-  await User.findByIdAndUpdate(_id, {
+  await User.findByIdAndUpdate(user._id, {
     verify: true,
-    verificationToken: null,
+    verificationToken: " ",
   });
-
   res.json({
     message: "Verification successful",
   });
 };
+const resendVerifyEmail = async (req, res) => {
+  const { email } = req.params;
+  const user = await User.findOne({ email });
+  if (!user) {
+    throw HttpError(400, "Missing required field email");
+  }
+  if (user.verify) {
+    throw HttpError(400, "Verification has already been passed");
+  }
+  const verifyEmail = {
+    to: email,
+    subject: "Verify email",
+    html: `<a target="_blank" href="${BASE_URL}/api/auth/verify/${verificationToken}">Click verify email</a>`,
+  };
 
-export const signin = async (req, res) => {
+  await sendEmail(verifyEmail);
+  res.json({
+    message: "Verification email sent",
+  });
+};
+const signin = async (req, res) => {
   const { email, password } = req.body;
   const user = await User.findOne({ email });
   if (!user) {
@@ -133,6 +151,7 @@ const updateAvatar = async (req, res) => {
 export default {
   signup: ctrlWrapper(signup),
   verifyEmail: ctrlWrapper(verifyEmail),
+  resendVerifyEmail: ctrlWrapper(resendVerifyEmail),
   signin: ctrlWrapper(signin),
   getCurrent: ctrlWrapper(getCurrent),
   logout: ctrlWrapper(logout),
