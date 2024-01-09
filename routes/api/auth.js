@@ -9,6 +9,7 @@ import upload from "../../middlewares/upload.js";
 
 const router = express.Router();
 router.post('/signup', isEmptyBody, validateBody(registerSchema), authController.signup)
+router.get('/verify/:verificationToken', authController.verifyEmail);
 router.post('/signin', isEmptyBody, validateBody(loginSchema), authController.signin)
 router.get('/current', authenticate, authController.getCurrent)
 router.post('/logout', authenticate, authController.logout)

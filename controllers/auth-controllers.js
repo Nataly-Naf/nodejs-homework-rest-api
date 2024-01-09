@@ -1,5 +1,5 @@
 import User from "../models/users.js";
-import { HttpError, croppedImg } from "../helpers/index.js";
+import { HttpError, croppedImg, sendEmail } from "../helpers/index.js";
 import { ctrlWrapper } from "../decorators/index.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
@@ -7,8 +7,9 @@ import "dotenv/config";
 import gravatar from "gravatar";
 import path from "path";
 import fs from "fs/promises";
+import { nanoid } from "nanoid";
 
-const { JWT_SECRET } = process.env;
+const { JWT_SECRET, BASE_URL } = process.env;
 const avatarsDir = path.resolve("public", "avatars");
 
 export const signup = async (req, res) => {
@@ -19,21 +20,54 @@ export const signup = async (req, res) => {
   }
   const hashPassword = await bcrypt.hash(password, 10);
   const avatarURL = gravatar.url(email);
+  const verificationToken = nanoid();
+
   const newUser = await User.create({
     ...req.body,
     password: hashPassword,
     avatarURL,
+    verificationToken,
   });
+  const verifyEmail = {
+    to: email,
+    subject: "Verify email",
+    html: `<a target="_blank" href="${BASE_URL}/api/users/verify/${verificationToken}">Click verify email</a>`,
+  };
+
+  await sendEmail(verifyEmail);
+
   res.status(201).json({
     email: newUser.email,
     subscription: newUser.subscription,
   });
 };
+
+const verifyEmail = async (req, res) => {
+  const { verificationToken, _id } = req.params;
+  console.log(verificationToken);
+  
+  const user = await User.findOne({ verificationToken });
+  if (!user) {
+    throw HttpError(401, "User not found");
+  }
+  await User.findByIdAndUpdate(_id, {
+    verify: true,
+    verificationToken: null,
+  });
+
+  res.json({
+    message: "Verification successful",
+  });
+};
+
 export const signin = async (req, res) => {
   const { email, password } = req.body;
   const user = await User.findOne({ email });
   if (!user) {
     throw HttpError(401, "Email or password invalid");
+  }
+  if (!user.verify) {
+    throw HttpError(401, "Email not verified");
   }
   const passwordCompare = await bcrypt.compare(password, user.password);
   if (!passwordCompare) {
@@ -83,13 +117,6 @@ const updateAvatar = async (req, res) => {
   const { _id } = req.user;
   const { path: tempUpload, originalname } = req.file;
   const filename = `${_id}_${originalname}`;
-
-  // async function croppedImg() {
-  //   const image = await Jimp.read(tempUpload);
-  //   const croppedImg = image.resize(250, 250).greyscale();
-  //   const rewriteImg = croppedImg.write(tempUpload);
-  //   return rewriteImg;
-  // }
   await croppedImg(tempUpload);
 
   const resultUpload = path.join(avatarsDir, filename);
@@ -105,6 +132,7 @@ const updateAvatar = async (req, res) => {
 
 export default {
   signup: ctrlWrapper(signup),
+  verifyEmail: ctrlWrapper(verifyEmail),
   signin: ctrlWrapper(signin),
   getCurrent: ctrlWrapper(getCurrent),
   logout: ctrlWrapper(logout),
